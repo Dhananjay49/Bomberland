@@ -28,6 +28,7 @@ private:
   static bool visited[225][3];
   static int bomb[225];
   static int explosion[225];
+  static int ring_of_fire[225];
   static int parent_bomb[225];
   static int safe_grid[15][15];
   static int bomb_created[225];
@@ -37,7 +38,7 @@ private:
 public:
   static int last_spiral_not_occupied(int bl);
   static bool che(int r,int c);
-  static void fill_metal_wood_bomb(const json& game_state, int tick);
+  static void fill_metal_wood_bomb_explosion_ringOfFire(const json& game_state, int tick);
   static int dist(int bl,int bl1);
   static void update_distances_parents(int unit_id, int bl);
   static int closest_safe_reachable_location(int unit_id,int bl);
@@ -61,6 +62,7 @@ int Agent::parent[225][3];
 bool Agent::visited[225][3];
 int Agent::bomb[225];
 int Agent::explosion[225];
+int Agent::ring_of_fire[225];
 int Agent::parent_bomb[225];
 int Agent::bomb_created[225];
 std::map<std::string,int> Agent::unit_string_num;
@@ -99,12 +101,13 @@ bool Agent::che(int r, int c){
 }
 
 
-void Agent::fill_metal_wood_bomb(const json& game_state,int tick){
+void Agent::fill_metal_wood_bomb_explosion_ringOfFire(const json& game_state,int tick){
   for(int i=0;i<225;i++){
     metal_ore[i]=0;
     wood[i]=0;
     bomb[i]=0;
     explosion[i]= 0;
+    ring_of_fire[i]=0;
     parent_bomb[i]=-1;
     bomb_created[i]=-1;
   }
@@ -129,6 +132,9 @@ void Agent::fill_metal_wood_bomb(const json& game_state,int tick){
           int x = entity["x"], y = entity["y"];
           explosion[x*15+y] = entity["expires"];
           explosion[x*15+y] -= tick;
+          } else {
+            int x = entity["x"], y = entity["y"];
+          ring_of_fire[x*15+y] = 1;
           }
         }
       }
@@ -221,6 +227,8 @@ int Agent::dist(int bl1,int bl2){
     return 1e8;
   } else if(wood[bl2]){
     return 6;
+  } else if(ring_of_fire[bl2]) {
+    return 12;
   } else {
     return 1;
   }
@@ -303,7 +311,7 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
 
   srand(1234567 * (my_agent_id == "a" ? 1 : 0) + tick * 100 + 13);
 
-  fill_metal_wood_bomb(game_state,tick);
+  fill_metal_wood_bomb_explosion_ringOfFire(game_state,tick);
   fill_safe_grid();
 
   for(int i=0;i<225;i++){
